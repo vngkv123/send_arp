@@ -200,8 +200,8 @@ int main(int argc, char *argv[])
 
 	/* arp spoofing attack start */
 
-	for(int i = 0; i < 10000; i++){
-		sleep(0.3);
+	for(int i = 0; i < 100000; i++){
+		sleep(0.5);
 		arp_reply();
 	}
 

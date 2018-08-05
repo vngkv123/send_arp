@@ -10,7 +10,25 @@
 #include <string.h>
 #include <unistd.h>
 #include <linux/if_link.h>
+#include <pcap.h>
+#include <iostream>
+#include <regex>
 #include "packet_struct.h"
+
+using namespace std;
+
+int check_ipaddr_once(char source[16])
+{
+    regex reg("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    smatch source_match;
+    std::string source_ip(source);
+    if( !regex_match(source_ip, source_match, reg)){
+		printf("\033[1;34m[-] pass\n\033[0m");
+        return 0;
+    }   
+	return 1;
+}
+
 
 int get_my_addr(char *__dev, char __my_ip[16])
 {
@@ -58,7 +76,8 @@ int get_my_addr(char *__dev, char __my_ip[16])
 			printf("\t\taddress: <%s>\n", host);
 
 			if(!strcmp(ifa->ifa_name, __dev)){
-				strncpy(__my_ip, host, strlen(host));
+				if(check_ipaddr_once(host))
+					strncpy(__my_ip, host, strlen(host));
 			}
 
 		} else if (family == AF_PACKET && ifa->ifa_data != NULL) {
@@ -75,3 +94,4 @@ int get_my_addr(char *__dev, char __my_ip[16])
 	freeifaddrs(ifaddr);
 	return 1;
 }
+

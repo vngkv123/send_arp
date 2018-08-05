@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <stdint.h>
 
 typedef unsigned short ushort;
 typedef unsigned char uchar;
@@ -16,8 +17,10 @@ struct ether_addr
  
 struct ether_header
 {
-        struct  ether_addr ether_dhost;
-        struct  ether_addr ether_shost;
+//        struct  ether_addr ether_dhost;
+//        struct  ether_addr ether_shost;
+		unsigned char ether_dhost[6];
+		unsigned char ether_shost[6];
         unsigned short ether_type;
 } __attribute__((packed));
 
@@ -26,13 +29,13 @@ struct arp_hdr
 {
 	ushort	ar_hrd;		// Hardware type : ethernet
 	ushort	ar_pro;     // Protocol		 : IP(0x0800)
-	uchar	ar_hln;     // Hardware size
-	uchar	ar_pln;     // Protocal size
+	uint8_t	ar_hln;     // Hardware size
+	uint8_t	ar_pln;     // Protocal size
 	ushort	ar_op;      // Opcode replay : Request(1), Replay(2)
-	uchar	ar_sha[6];  // Sender MAC
-	uchar	ar_sip[4];  // Sender IP
-	uchar	ar_tha[6];  // Target mac
-	uchar	ar_tip[4];  // Target IP
+	uint8_t	ar_sha[6];  // Sender MAC
+	uint8_t	ar_sip[4];  // Sender IP
+	uint8_t	ar_tha[6];  // Target mac
+	uint8_t	ar_tip[4];  // Target IP
 } __attribute__((packed));
  
 struct ip_header

@@ -7,6 +7,7 @@ typedef unsigned char uchar;
 
 void check_interface(char *interface);
 void check_ipaddr(char source[16], char destination[16]);
+int get_my_addr(char *__dev, char __my_ip[16]);
 
 struct ether_addr
 {

@@ -1,8 +1,8 @@
 #Makefile
 all: send_arp
 
-send_arp: main.o verification.o
-	g++ -o send_arp main.o verification.o -Wall -lpcap
+send_arp: main.o verification.o utils.o
+	g++ -o send_arp main.o verification.o utils.o -Wall -lpcap -lpthread
 	rm -f *.o
 	rm -f *.gch
 
@@ -11,6 +11,9 @@ main.o: packet_struct.h main.cpp
 
 verification.o: packet_struct.h verification.cpp
 	g++ -c packet_struct.h verification.cpp -std=c++11
+
+utils.o: packet_struct.h utils.cpp
+	g++ -c packet_struct.h utils.cpp
 
 clean:
 	rm -f *.o

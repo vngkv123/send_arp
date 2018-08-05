@@ -38,6 +38,7 @@ char errbuf[PCAP_ERRBUF_SIZE];
 unsigned char mac_address[6];
 unsigned char target_mac_address[6];
 static unsigned char dhr[6];
+char *sender;
 char *tip;
 
 void find_my_mac(void)
@@ -100,7 +101,7 @@ void arp_reply()
     arp_h->ar_op = ntohs(ARP_REPLY);
     memcpy((void *)arp_h->ar_sha, (const void *)mac_address, 6);
     memcpy((void *)arp_h->ar_tha, (const void *)target_mac_address, 6);
-    *(unsigned char *)arp_h->ar_sip = inet_addr((const char *)my_ip);
+    *(unsigned char *)arp_h->ar_sip = inet_addr((const char *)sender);
     *(unsigned char *)arp_h->ar_tip = inet_addr((const char *)tip);
 
     pcap_sendpacket(handle, packet, sizeof(struct ether_header) + sizeof(struct arp_hdr));
@@ -130,7 +131,7 @@ void *arp_request(void *)
     //memcpy((void *)arp_h->ar_sip[i], (const void *)my_ip, 4);
     *(unsigned char *)arp_h->ar_sip = inet_addr((const char *)my_ip);
     memcpy((void *)arp_h->ar_tha, (const void *)"\x00\x00\x00\x00\x00\x00", 6);
-    *(unsigned char *)arp_h->ar_tip = inet_addr((const char *)tip);
+    *(unsigned char *)arp_h->ar_tip = inet_addr((const char *)sender);
 
     pcap_sendpacket(handle, packet, sizeof(struct ether_header) + sizeof(struct arp_hdr));
 	std::cout << "[-] ARP_Request is done." << std::endl;
@@ -191,7 +192,9 @@ int main(int argc, char *argv[])
 	check_ipaddr(argv[2], argv[3]);
 	find_my_mac();
 	handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
-	tip = argv[2];
+
+	sender = argv[2];
+	tip = argv[3];
 
 	/* for getting target mac address */
 
